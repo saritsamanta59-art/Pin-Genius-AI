@@ -1,8 +1,8 @@
 import { PinterestBoard, PinterestSection, PinterestUser } from "../types";
 
 const CLIENT_ID = '1542384';
-// Updated to the user's requested redirect URL
-const REDIRECT_URI = 'https://app.solosparkdigital.com/pinterest/callback';
+// Use origin to ensure compatibility with static hosting providers like Hostinger/Vercel
+const REDIRECT_URI = window.location.origin;
 const API_BASE = 'https://api.pinterest.com/v5';
 
 export const pinterestService = {
@@ -11,7 +11,6 @@ export const pinterestService = {
   getAuthUrl: () => {
     const scope = 'boards:read,boards:write,pins:read,pins:write';
     const state = Math.random().toString(36).substring(7);
-    // The redirect_uri parameter must be an EXACT match to what is registered in the Pinterest Dev Portal.
     return `https://www.pinterest.com/oauth/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scope}&state=${state}`;
   },
 
@@ -80,7 +79,6 @@ export const pinterestService = {
     const token = pinterestService.getAccessToken();
     if (!token) throw new Error("Not authorized");
 
-    // Remove the data URI prefix for the API
     const base64Data = params.imageBase64.split(',')[1] || params.imageBase64;
 
     const response = await fetch(`${API_BASE}/pins`, {
