@@ -7,7 +7,7 @@ const CLIENT_ID = '1542384';
 const CLIENT_SECRET = 'f3278a00950d7343e49d7a137c66640bd5fd3de7';
 
 // This MUST match exactly what you have in the Pinterest Developer Portal
-const REDIRECT_URI = 'https://solosparkdigital.net/pinterest/callback';
+const REDIRECT_URI = 'https://solosparkdigital.net/pinterest-callback';
 const API_BASE = 'https://api.pinterest.com/v5';
 
 export const pinterestService = {
