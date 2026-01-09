@@ -14,7 +14,8 @@ import {
   ChevronDown,
   User as UserIcon,
   ExternalLink,
-  Info
+  Info,
+  Key
 } from 'lucide-react';
 import { PinConfig, PinVariation, FONTS, PinterestBoard, PinterestSection, PinterestUser } from '../types';
 import { pinterestService } from '../services/pinterestService';
@@ -72,6 +73,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
 
+  // Manual Token State
+  const [showManualToken, setShowManualToken] = useState(false);
+  const [manualToken, setManualToken] = useState('');
+  const [isSavingManual, setIsSavingManual] = useState(false);
+
   useEffect(() => {
     if (isPinterestConnected && activeTab === 'publish') {
       pinterestService.fetchUser().then(setUser).catch(console.error);
@@ -103,6 +109,22 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const updateConfig = (key: keyof PinConfig, value: any) => {
     setConfig({ ...config, [key]: value });
+  };
+
+  const handleSaveManualToken = async () => {
+    if (!manualToken.trim()) return;
+    setIsSavingManual(true);
+    try {
+      pinterestService.setAccessToken(manualToken.trim());
+      // Verify immediately
+      await pinterestService.fetchUser();
+      window.location.reload(); // Quickest way to refresh app state
+    } catch (err: any) {
+      alert("Invalid Token: Could not fetch Pinterest user profile with this token.");
+      pinterestService.disconnect();
+    } finally {
+      setIsSavingManual(false);
+    }
   };
 
   const handleScheduleClick = async () => {
@@ -291,28 +313,45 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       Authorize PinGenius AI to publish and schedule pins directly to your boards.
                     </p>
                     
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 text-left">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Info className="w-3 h-3 text-slate-400" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Setup Instructions</span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 leading-normal mb-3">
-                        Ensure the Redirect URI below is added to your Pinterest App at <strong>developers.pinterest.com</strong>:
-                      </p>
-                      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-2 overflow-hidden">
-                        <code className="text-[10px] text-red-600 flex-1 truncate font-mono">{pinterestService.getRedirectUri()}</code>
-                        <button onClick={copyUri} className="text-slate-400 hover:text-red-600 shrink-0">
-                          {copiedUri ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                        </button>
-                      </div>
-                    </div>
-
                     <button 
                       onClick={onConnectPinterest}
-                      className="w-full py-4 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                      className="w-full py-4 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-all shadow-lg flex items-center justify-center gap-2 mb-4"
                     >
                       Connect Account <ExternalLink className="w-4 h-4" />
                     </button>
+
+                    <div className="pt-4 border-t border-slate-100">
+                      <button 
+                        onClick={() => setShowManualToken(!showManualToken)}
+                        className="text-xs font-bold text-slate-400 hover:text-slate-600 flex items-center justify-center gap-1 mx-auto"
+                      >
+                        <Key className="w-3 h-3" /> {showManualToken ? "Hide Manual Option" : "Advanced: Use Manual Token"}
+                      </button>
+                      
+                      {showManualToken && (
+                        <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl text-left space-y-3 animate-in fade-in slide-in-from-top-2">
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Paste Access Token</label>
+                           <input 
+                              type="password"
+                              value={manualToken}
+                              onChange={(e) => setManualToken(e.target.value)}
+                              placeholder="pina_..."
+                              className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-red-500 outline-none font-mono"
+                           />
+                           <button 
+                            onClick={handleSaveManualToken}
+                            disabled={isSavingManual || !manualToken}
+                            className="w-full py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900 transition-colors flex items-center justify-center gap-2"
+                           >
+                            {isSavingManual ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                            Connect with Token
+                           </button>
+                           <p className="text-[9px] text-slate-400 leading-tight">
+                            Use this if standard OAuth fails. This is the token starting with "pina_" found in your developer dashboard.
+                           </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <>

@@ -1,8 +1,8 @@
 import { PinterestBoard, PinterestSection, PinterestUser } from "../types";
 
 const CLIENT_ID = '1542384';
-// Use origin to ensure compatibility with static hosting providers like Hostinger/Vercel
-const REDIRECT_URI = window.location.origin;
+// Exact match as registered in the Pinterest Developer Portal
+const REDIRECT_URI = 'https://solosparkdigital.net/pinterest/callback';
 const API_BASE = 'https://api.pinterest.com/v5';
 
 export const pinterestService = {

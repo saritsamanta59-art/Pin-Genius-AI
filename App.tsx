@@ -55,9 +55,7 @@ export default function App() {
     // 1. Handle explicit OAuth errors from Pinterest
     if (error) {
       setErrorMsg(`Pinterest connection failed: ${errorDescription || error}`);
-      const cleanPath = window.location.pathname.replace('/pinterest/callback', '');
-      const cleanUrl = window.location.origin + (cleanPath === '' ? '/' : cleanPath);
-      window.history.replaceState({}, document.title, cleanUrl);
+      window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
       return;
     }
 
@@ -65,7 +63,9 @@ export default function App() {
     if (code || accessToken) {
       const verifyConnection = async () => {
         setIsVerifyingPinterest(true);
-        const token = accessToken || (code ? 'simulated_token_' + code : null);
+        // Note: For client-side, we ideally get an access_token. 
+        // If we get a code, it usually needs a server to exchange it.
+        const token = accessToken || code;
         
         if (token) {
           try {
@@ -84,10 +84,8 @@ export default function App() {
         
         setIsVerifyingPinterest(false);
 
-        // Clean up the URL: remove 'pinterest/callback' and strip query params
-        const cleanPath = window.location.pathname.replace('/pinterest/callback', '');
-        const cleanUrl = window.location.origin + (cleanPath === '' ? '/' : cleanPath);
-        window.history.replaceState({}, document.title, cleanUrl);
+        // Clean up the URL query params
+        window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
       };
 
       verifyConnection();
@@ -95,11 +93,10 @@ export default function App() {
   }, []);
 
   const handleConnectPinterest = () => {
-    setErrorMsg(''); // Clear any old errors
+    setErrorMsg(''); 
     const authUrl = pinterestService.getAuthUrl();
     window.open(authUrl, '_blank', 'width=600,height=700');
     
-    // Polling for connection (useful if the popup updates localStorage directly)
     const checkInterval = setInterval(() => {
       if (pinterestService.isConnected()) {
         setIsPinterestConnected(true);
@@ -133,7 +130,6 @@ export default function App() {
         publishAt: params.date
       });
     } catch (err: any) {
-      // If the API says unauthorized, handle logout automatically
       if (err.message?.includes('authorized') || err.status === 401) {
         handleLogoutPinterest();
         throw new Error("Your Pinterest session has expired. Please reconnect.");
@@ -295,7 +291,7 @@ export default function App() {
                 config={config}
                 setConfig={setConfig}
                 loadingImages={loadingImages}
-                errorMsg={""} // Pass empty as we handle it globally above now, or keep it for localized input errors
+                errorMsg={""}
                 isPinterestConnected={isPinterestConnected}
                 onConnectPinterest={handleConnectPinterest}
                 onSchedule={handleSchedule}
