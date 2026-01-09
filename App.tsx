@@ -52,39 +52,36 @@ export default function App() {
     const error = urlParams.get('error');
     const errorDescription = urlParams.get('error_description');
     
-    // 1. Handle explicit OAuth errors from Pinterest
     if (error) {
       setErrorMsg(`Pinterest connection failed: ${errorDescription || error}`);
       window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
       return;
     }
 
-    // 2. Handle successful callback or direct token provision
     if (code || accessToken) {
       const verifyConnection = async () => {
         setIsVerifyingPinterest(true);
-        // Note: For client-side, we ideally get an access_token. 
-        // If we get a code, it usually needs a server to exchange it.
         const token = accessToken || code;
         
         if (token) {
           try {
             pinterestService.setAccessToken(token);
-            // Verification: Ensure the token actually works by fetching user profile
             await pinterestService.fetchUser();
             setIsPinterestConnected(true);
-            setErrorMsg(''); // Clear previous errors on success
+            setErrorMsg('');
           } catch (err: any) {
             console.error("Pinterest verification failed:", err);
+            if (token.startsWith('pina_')) {
+               setErrorMsg("The manual token provided is invalid or expired.");
+            } else {
+               setErrorMsg("Authorization successful, but session verification failed. Ensure your callback exchanges the 'code' for a valid 'access_token'.");
+            }
             pinterestService.disconnect();
             setIsPinterestConnected(false);
-            setErrorMsg("The Pinterest access token is invalid or has expired. Please try connecting again.");
           }
         }
         
         setIsVerifyingPinterest(false);
-
-        // Clean up the URL query params
         window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
       };
 
@@ -95,8 +92,10 @@ export default function App() {
   const handleConnectPinterest = () => {
     setErrorMsg(''); 
     const authUrl = pinterestService.getAuthUrl();
+    // Using window.open instead of window.location.href to avoid iframe "refused to connect" errors
     window.open(authUrl, '_blank', 'width=600,height=700');
     
+    // Set a listener/poll for when the token might be set by a popup or redirect back
     const checkInterval = setInterval(() => {
       if (pinterestService.isConnected()) {
         setIsPinterestConnected(true);
@@ -104,7 +103,7 @@ export default function App() {
       }
     }, 2000);
     
-    setTimeout(() => clearInterval(checkInterval), 120000);
+    setTimeout(() => clearInterval(checkInterval), 60000);
   };
 
   const handleLogoutPinterest = () => {
@@ -124,7 +123,7 @@ export default function App() {
       await pinterestService.createPin({
         boardId: params.boardId,
         boardSectionId: params.sectionId,
-        title: currentVar.seoTitle,
+        title: config.headline || currentVar.seoTitle,
         description: `${currentVar.seoDescription} ${currentVar.hashtags}`,
         imageBase64: imageData,
         publishAt: params.date
@@ -258,7 +257,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Global Alert Area for Pinterest/GenAI Errors */}
       {errorMsg && (
         <div className="bg-red-50 border-b border-red-100 py-3 px-4">
           <div className="max-w-7xl mx-auto flex items-center gap-3 text-red-700 text-sm font-medium">
