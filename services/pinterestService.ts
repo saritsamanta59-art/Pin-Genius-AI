@@ -1,29 +1,33 @@
 import { PinterestBoard, PinterestSection, PinterestUser } from "../types";
 
+// Your provided Pinterest App Credentials
 const CLIENT_ID = '1542384';
-// Exact match as registered in your Pinterest Developer Portal
-const REDIRECT_URI = 'https://solosparkdigital.net/pinterest/callback.php';
+// Note: Client Secret is typically used server-side, but kept here for reference if you have a proxy.
+// For pure client-side apps, we use the Implicit Flow or a PKCE-like approach if supported.
+const CLIENT_SECRET = 'f3278a00950d7343e49d7a137c66640bd5fd3de7';
+
+// This MUST match exactly what you have in the Pinterest Developer Portal
+const REDIRECT_URI = 'https://solosparkdigital.net/pinterest/callback';
 const API_BASE = 'https://api.pinterest.com/v5';
 
 export const pinterestService = {
   getRedirectUri: () => REDIRECT_URI,
+  getClientId: () => CLIENT_ID,
 
   getAuthUrl: () => {
-    // We include write scopes to actually publish the pins we create
     const scope = 'boards:read,boards:write,pins:read,pins:write';
     const state = Math.random().toString(36).substring(7);
     
-    // Standard Pinterest OAuth V5 authorize endpoint
-    const baseUrl = 'https://www.pinterest.com/oauth/authorize';
+    // Pinterest V5 OAuth URL
     const params = new URLSearchParams({
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT_URI,
-      response_type: 'code',
+      response_type: 'code', // or 'token' for implicit
       scope: scope,
       state: state
     });
 
-    return `${baseUrl}?${params.toString()}`;
+    return `https://www.pinterest.com/oauth/?${params.toString()}`;
   },
 
   setAccessToken: (token: string) => {
@@ -36,7 +40,7 @@ export const pinterestService = {
 
   isConnected: () => {
     const token = localStorage.getItem('pinterest_access_token');
-    return !!token && token.length > 5;
+    return !!token && token.length > 10;
   },
 
   disconnect: () => {
@@ -53,7 +57,7 @@ export const pinterestService = {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || "Failed to fetch user profile. The token might be invalid or expired.");
+      throw new Error(errorData.message || "Pinterest session expired.");
     }
     return await response.json();
   },
@@ -95,7 +99,6 @@ export const pinterestService = {
     const token = pinterestService.getAccessToken();
     if (!token) throw new Error("Not authorized");
 
-    // Remove data URL prefix if present
     const base64Data = params.imageBase64.includes(',') 
       ? params.imageBase64.split(',')[1] 
       : params.imageBase64;
@@ -125,7 +128,7 @@ export const pinterestService = {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || `Failed to create pin: ${response.statusText}`);
+      throw new Error(error.message || "Failed to create pin");
     }
 
     return await response.json();
